@@ -81,6 +81,7 @@ for lang_idx, lang in enumerate(langs):
                 + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\nLabel: "
             )
             response = gpt3_complete_with_auto_reduce(
+                sleep_time=args.sleep_time,
                 engine="text-davinci-003",
                 prompt=valid_prompt,
                 temperature=1,
@@ -134,6 +135,7 @@ for lang_idx, lang in enumerate(langs):
                 + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: "
             )
             response = gpt3_complete_with_auto_reduce(
+                sleep_time=args.sleep_time,
                 engine="text-davinci-003",
                 prompt=valid_prompt,
                 temperature=1,

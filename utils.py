@@ -17,7 +17,10 @@ def remove_last_icl_example(prompt):
 
 
 @retry(delay=60, backoff=2, tries=5)
-def gpt3_complete_with_auto_reduce(*args, **kwargs):
+def gpt3_complete_with_auto_reduce(sleep_time, *args, **kwargs):
+    """
+    This function is used to automatically reduce the number of examples if it is too long for GPT API.
+    """
     is_too_long = True
 
     while is_too_long:
@@ -26,7 +29,7 @@ def gpt3_complete_with_auto_reduce(*args, **kwargs):
             is_too_long = False
         except:
             kwargs["prompt"] = remove_last_icl_example(kwargs["prompt"])
-            time.sleep(1)
+            time.sleep(sleep_time)
             continue
         return res
 
