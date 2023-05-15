@@ -54,102 +54,102 @@ if __name__ == "__main__":
     np.random.seed(42)
 
 
-plugin_model = transformers.pipeline("text-classification", model=args.model_path)
-print(f"Loaded model {args.model_path} with name {args.model_name}")
-langs = args.lang.split(",")
-print(f"Testing on languages: {langs}")
+    plugin_model = transformers.pipeline("text-classification", model=args.model_path)
+    print(f"Loaded model {args.model_path} with name {args.model_name}")
+    langs = args.lang.split(",")
+    print(f"Testing on languages: {langs}")
 
-dataset = datasets.load_dataset("xnli", langs[0])
-label_map = dataset["train"].features["label"].names
+    dataset = datasets.load_dataset("xnli", langs[0])
+    label_map = dataset["train"].features["label"].names
 
-for lang_idx, lang in enumerate(langs):
-    if lang_idx != 0:
-        dataset = datasets.load_dataset("xnli", lang)
-    train = dataset["train"].shuffle().select(range(args.num_examples))
-    test = dataset["test"]
+    for lang_idx, lang in enumerate(langs):
+        if lang_idx != 0:
+            dataset = datasets.load_dataset("xnli", lang)
+        train = dataset["train"].shuffle().select(range(args.num_examples))
+        test = dataset["test"]
 
-    if args.run_icl:
-        in_context_prompt = ""
-        for example in train:
-            in_context_prompt += f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\nLabel: {label_map[example['label']]}\n\n"
+        if args.run_icl:
+            in_context_prompt = ""
+            for example in train:
+                in_context_prompt += f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\nLabel: {label_map[example['label']]}\n\n"
 
-        total_icl = 0
-        correct_icl = 0
-        for example in tqdm(test):
-            valid_prompt = (
-                in_context_prompt
-                + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\nLabel: "
+            total_icl = 0
+            correct_icl = 0
+            for example in tqdm(test):
+                valid_prompt = (
+                    in_context_prompt
+                    + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\nLabel: "
+                )
+                response = gpt3_complete_with_auto_reduce(
+                    sleep_time=args.sleep_time,
+                    engine="text-davinci-003",
+                    prompt=valid_prompt,
+                    temperature=1,
+                    max_tokens=10,
+                    top_p=0.5,
+                    frequency_penalty=0,
+                    presence_penalty=0,
+                    best_of=1,
+                    stop=None,
+                )
+                time.sleep(args.sleep_time)
+                result = response["choices"][0]["text"].strip()
+                total_icl += 1
+                if result == label_map[example["label"]]:
+                    correct_icl += 1
+
+            print(f"Language: {lang}, ICL Accuracy: {correct_icl / total_icl}")
+
+        if args.run_plugin_model:
+            total_plugin_model = 0
+            correct_plugin_model = 0
+            for example in tqdm(test):
+                text = f"{example['premise']} <s> {example['hypothesis']}"
+                result = convert_label(plugin_model(text)[0]["label"])
+                total_plugin_model += 1
+                if result == label_map[example["label"]]:
+                    correct_plugin_model += 1
+
+            print(
+                f"Language: {lang}, Plugin Model Accuracy: {correct_plugin_model / total_plugin_model}"
             )
-            response = gpt3_complete_with_auto_reduce(
-                sleep_time=args.sleep_time,
-                engine="text-davinci-003",
-                prompt=valid_prompt,
-                temperature=1,
-                max_tokens=10,
-                top_p=0.5,
-                frequency_penalty=0,
-                presence_penalty=0,
-                best_of=1,
-                stop=None,
-            )
-            time.sleep(args.sleep_time)
-            result = response["choices"][0]["text"].strip()
-            total_icl += 1
-            if result == label_map[example["label"]]:
-                correct_icl += 1
 
-        print(f"Language: {lang}, ICL Accuracy: {correct_icl / total_icl}")
+        if args.run_supericl:
+            in_context_supericl_prompt = ""
+            for example in train:
+                text = f"{example['premise']} <s> {example['hypothesis']}"
+                plugin_model_res = plugin_model(text)[0]
+                plugin_model_label = convert_label(plugin_model_res["label"])
+                plugin_model_confidence = round(plugin_model_res["score"], 2)
+                in_context_supericl_prompt += f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: {label_map[example['label']]}\n\n"
 
-    if args.run_plugin_model:
-        total_plugin_model = 0
-        correct_plugin_model = 0
-        for example in tqdm(test):
-            text = f"{example['premise']} <s> {example['hypothesis']}"
-            result = convert_label(plugin_model(text)[0]["label"])
-            total_plugin_model += 1
-            if result == label_map[example["label"]]:
-                correct_plugin_model += 1
+            total_supericl = 0
+            correct_supericl = 0
+            for example in tqdm(test):
+                text = f"{example['premise']} <s> {example['hypothesis']}"
+                plugin_model_res = plugin_model(text)[0]
+                plugin_model_label = convert_label(plugin_model_res["label"])
+                plugin_model_confidence = round(plugin_model_res["score"], 2)
+                valid_prompt = (
+                    in_context_supericl_prompt
+                    + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: "
+                )
+                response = gpt3_complete_with_auto_reduce(
+                    sleep_time=args.sleep_time,
+                    engine="text-davinci-003",
+                    prompt=valid_prompt,
+                    temperature=1,
+                    max_tokens=10,
+                    top_p=0.5,
+                    frequency_penalty=0,
+                    presence_penalty=0,
+                    best_of=1,
+                    stop=None,
+                )
+                time.sleep(args.sleep_time)
+                result = response["choices"][0]["text"].strip()
+                total_supericl += 1
+                if result == label_map[example["label"]]:
+                    correct_supericl += 1
 
-        print(
-            f"Language: {lang}, Plugin Model Accuracy: {correct_plugin_model / total_plugin_model}"
-        )
-
-    if args.run_supericl:
-        in_context_supericl_prompt = ""
-        for example in train:
-            text = f"{example['premise']} <s> {example['hypothesis']}"
-            plugin_model_res = plugin_model(text)[0]
-            plugin_model_label = convert_label(plugin_model_res["label"])
-            plugin_model_confidence = round(plugin_model_res["score"], 2)
-            in_context_supericl_prompt += f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: {label_map[example['label']]}\n\n"
-
-        total_supericl = 0
-        correct_supericl = 0
-        for example in tqdm(test):
-            text = f"{example['premise']} <s> {example['hypothesis']}"
-            plugin_model_res = plugin_model(text)[0]
-            plugin_model_label = convert_label(plugin_model_res["label"])
-            plugin_model_confidence = round(plugin_model_res["score"], 2)
-            valid_prompt = (
-                in_context_supericl_prompt
-                + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: "
-            )
-            response = gpt3_complete_with_auto_reduce(
-                sleep_time=args.sleep_time,
-                engine="text-davinci-003",
-                prompt=valid_prompt,
-                temperature=1,
-                max_tokens=10,
-                top_p=0.5,
-                frequency_penalty=0,
-                presence_penalty=0,
-                best_of=1,
-                stop=None,
-            )
-            time.sleep(args.sleep_time)
-            result = response["choices"][0]["text"].strip()
-            total_supericl += 1
-            if result == label_map[example["label"]]:
-                correct_supericl += 1
-
-        print(f"Language: {lang}, SuperICL Accuracy: {correct_supericl / total_supericl}")
+            print(f"Language: {lang}, SuperICL Accuracy: {correct_supericl / total_supericl}")
