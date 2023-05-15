@@ -55,7 +55,9 @@ if __name__ == "__main__":
 
 
 plugin_model = transformers.pipeline("text-classification", model=args.model_path)
+print(f"Loaded model {args.model_path} with name {args.model_name}")
 langs = args.lang.split(",")
+print(f"Testing on languages: {langs}")
 
 dataset = datasets.load_dataset("xnli", langs[0])
 label_map = dataset["train"].features["label"].names
@@ -64,6 +66,7 @@ for lang_idx, lang in enumerate(langs):
     if lang_idx != 0:
         dataset = datasets.load_dataset("xnli", lang)
     train = dataset["train"].shuffle().select(range(args.num_examples))
+    test = dataset["test"]
 
     if args.run_icl:
         in_context_prompt = ""
@@ -72,7 +75,7 @@ for lang_idx, lang in enumerate(langs):
 
         total_icl = 0
         correct_icl = 0
-        for example in tqdm(dataset["test"]):
+        for example in tqdm(test):
             valid_prompt = (
                 in_context_prompt
                 + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\nLabel: "
@@ -99,7 +102,7 @@ for lang_idx, lang in enumerate(langs):
     if args.run_plugin_model:
         total_plugin_model = 0
         correct_plugin_model = 0
-        for example in tqdm(dataset["test"]):
+        for example in tqdm(test):
             text = f"{example['premise']} <s> {example['hypothesis']}"
             result = convert_label(plugin_model(text)[0]["label"])
             total_plugin_model += 1
@@ -121,7 +124,7 @@ for lang_idx, lang in enumerate(langs):
 
         total_supericl = 0
         correct_supericl = 0
-        for example in tqdm(dataset["test"]):
+        for example in tqdm(test):
             text = f"{example['premise']} <s> {example['hypothesis']}"
             plugin_model_res = plugin_model(text)[0]
             plugin_model_label = convert_label(plugin_model_res["label"])
