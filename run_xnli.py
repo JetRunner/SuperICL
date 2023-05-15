@@ -111,23 +111,23 @@ for lang_idx, lang in enumerate(langs):
         )
 
     if args.run_supericl:
-        in_context_distill_prompt = ""
+        in_context_supericl_prompt = ""
         for example in train:
             text = f"{example['premise']} <s> {example['hypothesis']}"
             plugin_model_res = plugin_model(text)[0]
             plugin_model_label = convert_label(plugin_model_res["label"])
             plugin_model_confidence = round(plugin_model_res["score"], 2)
-            in_context_distill_prompt += f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: {label_map[example['label']]}\n\n"
+            in_context_supericl_prompt += f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: {label_map[example['label']]}\n\n"
 
-        total_distill = 0
-        correct_distill = 0
+        total_supericl = 0
+        correct_supericl = 0
         for example in tqdm(dataset["test"]):
             text = f"{example['premise']} <s> {example['hypothesis']}"
             plugin_model_res = plugin_model(text)[0]
             plugin_model_label = convert_label(plugin_model_res["label"])
             plugin_model_confidence = round(plugin_model_res["score"], 2)
             valid_prompt = (
-                in_context_distill_prompt
+                in_context_supericl_prompt
                 + f"Premise: {example['premise']}\nHypothesis: {example['hypothesis']}\n{args.model_name} Prediction: {plugin_model_label} (Confidence: {plugin_model_confidence})\nLabel: "
             )
             response = gpt3_complete_with_auto_reduce(
@@ -143,8 +143,8 @@ for lang_idx, lang in enumerate(langs):
             )
             time.sleep(args.sleep_time)
             result = response["choices"][0]["text"].strip()
-            total_distill += 1
+            total_supericl += 1
             if result == label_map[example["label"]]:
-                correct_distill += 1
+                correct_supericl += 1
 
-        print(f"Language: {lang}, SuperICL Accuracy: {correct_distill / total_distill}")
+        print(f"Language: {lang}, SuperICL Accuracy: {correct_supericl / total_supericl}")
