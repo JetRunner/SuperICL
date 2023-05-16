@@ -4,3 +4,4 @@ openai
 torch
 datasets
 transformers
+scikit-learn

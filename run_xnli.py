@@ -49,10 +49,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    random.seed(42)
-    torch.manual_seed(42)
-    np.random.seed(42)
-
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     plugin_model = transformers.pipeline("text-classification", model=args.model_path)
     print(f"Loaded model {args.model_path} with name {args.model_name}")
@@ -152,4 +151,6 @@ if __name__ == "__main__":
                 if result == label_map[example["label"]]:
                     correct_supericl += 1
 
-            print(f"Language: {lang}, SuperICL Accuracy: {correct_supericl / total_supericl}")
+            print(
+                f"Language: {lang}, SuperICL Accuracy: {correct_supericl / total_supericl}"
+            )
