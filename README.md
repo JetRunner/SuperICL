@@ -1,5 +1,5 @@
 # SuperICL
-Code for "Small Models are Valuable Plug-ins for Large Language Models".
+Code for ["Small Models are Valuable Plug-ins for Large Language Models"](https://arxiv.org/abs/2305.08848).
 
 ![supericl_workflow](https://github.com/JetRunner/SuperICL/assets/22514219/4567f26b-2c21-4f00-bfba-92622dfab47b)
 
