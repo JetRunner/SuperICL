@@ -1,7 +1,7 @@
 # SuperICL
 Code repo for "Small Models are Valuable Plug-ins for Large Language Models"
 
-![supericl_workflow](https://github.com/JetRunner/SuperICL/assets/22514219/ee3ed329-d47a-4aae-b7fd-b28d64466d37)
+![supericl_workflow](https://github.com/JetRunner/SuperICL/assets/22514219/4567f26b-2c21-4f00-bfba-92622dfab47b)
 
 ## How to Run Code
 ### Setup
