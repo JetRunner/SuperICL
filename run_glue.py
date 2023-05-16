@@ -78,7 +78,6 @@ if __name__ == "__main__":
             "validation" + {"m": "_matched", "mm": "_mismatched"}[args.dataset[-1]]
         ]
     )
-    test = test.select(range(10))  # DEBUG
 
     if args.run_icl:
         in_context_prompt = ""
